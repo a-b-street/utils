@@ -1,5 +1,6 @@
 mod mercator;
 mod node_map;
+pub mod osm2graph;
 mod tags;
 
 pub use self::mercator::Mercator;
