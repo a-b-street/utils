@@ -32,6 +32,7 @@ pub struct Edge {
     pub osm_way: osm_reader::WayID,
     pub osm_node1: osm_reader::NodeID,
     pub osm_node2: osm_reader::NodeID,
+    pub osm_tags: Tags,
 
     pub linestring: LineString,
 }
@@ -166,6 +167,7 @@ fn split_edges(
                     osm_way: way.id,
                     osm_node1: node1,
                     osm_node2: node,
+                    osm_tags: way.tags.clone(),
                     linestring: LineString::new(std::mem::take(&mut pts)),
                 });
 
