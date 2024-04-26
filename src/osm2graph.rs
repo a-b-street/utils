@@ -77,7 +77,11 @@ impl Graph {
             Element::Bounds { .. } => {}
         })?;
 
-        let (mut edges, mut intersections) = split_edges(&node_mapping, highways);
+        Ok(Self::from_scraped_osm(node_mapping, highways))
+    }
+
+    pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
+        let (mut edges, mut intersections) = split_edges(node_mapping, ways);
 
         // TODO expensive
         let mut collection: GeometryCollection = edges
@@ -101,17 +105,17 @@ impl Graph {
         mercator.to_mercator_in_place(&mut collection);
         let boundary_polygon = collection.convex_hull();
 
-        Ok(Self {
+        Self {
             edges,
             intersections,
             mercator,
             boundary_polygon,
-        })
+        }
     }
 }
 
 fn split_edges(
-    node_mapping: &HashMap<NodeID, Coord>,
+    node_mapping: HashMap<NodeID, Coord>,
     ways: Vec<Way>,
 ) -> (Vec<Edge>, Vec<Intersection>) {
     // Count how many ways reference each node
