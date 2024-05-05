@@ -6,8 +6,8 @@ use geo::{BoundingRect, Coord, HaversineLength, LineString, MapCoords, MapCoords
 // TODO Upstream or consider https://github.com/georust/geo/issues/1165
 pub struct Mercator {
     pub wgs84_bounds: Rect,
-    width: f64,
-    height: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
 impl Mercator {
