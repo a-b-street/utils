@@ -57,13 +57,27 @@ struct Way {
 /// Note this doesn't expose everything from osm_reader (relations, version) and transforms some
 /// data
 pub trait OsmReader {
-    fn node(&mut self, _id: osm_reader::NodeID, _pt: Coord, _tags: Tags) {}
+    fn node(&mut self, id: osm_reader::NodeID, pt: Coord, tags: Tags);
     fn way(
         &mut self,
-        _id: osm_reader::WayID,
-        _node_ids: &Vec<osm_reader::NodeID>,
-        _node_mapping: &HashMap<osm_reader::NodeID, Coord>,
-        _tags: &Tags,
+        id: osm_reader::WayID,
+        node_ids: &Vec<osm_reader::NodeID>,
+        node_mapping: &HashMap<osm_reader::NodeID, Coord>,
+        tags: &Tags,
+    );
+}
+
+/// Ignores everything
+pub struct NullReader;
+
+impl OsmReader for NullReader {
+    fn node(&mut self, _: osm_reader::NodeID, _: Coord, _: Tags) {}
+    fn way(
+        &mut self,
+        _: osm_reader::WayID,
+        _: &Vec<osm_reader::NodeID>,
+        _: &HashMap<osm_reader::NodeID, Coord>,
+        _: &Tags,
     ) {
     }
 }
