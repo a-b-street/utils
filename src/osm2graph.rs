@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use geo::{ConvexHull, Coord, Geometry, GeometryCollection, LineString, Point, Polygon};
+use log::{info, warn};
 use osm_reader::{Element, NodeID, WayID};
 
 use crate::{Mercator, Tags};
@@ -47,29 +48,62 @@ pub struct Intersection {
 }
 
 /// A scraped OSM way
-pub struct Way {
-    pub id: WayID,
-    pub node_ids: Vec<NodeID>,
-    pub tags: Tags,
+struct Way {
+    id: WayID,
+    node_ids: Vec<NodeID>,
+    tags: Tags,
+}
+
+/// Note this doesn't expose everything from osm_reader (relations, version) and transforms some
+/// data
+pub trait OsmReader {
+    fn node(&mut self, _id: osm_reader::NodeID, _pt: Coord, _tags: Tags) {}
+    fn way(
+        &mut self,
+        _id: osm_reader::WayID,
+        _node_ids: &Vec<osm_reader::NodeID>,
+        _node_mapping: &HashMap<osm_reader::NodeID, Coord>,
+        _tags: &Tags,
+    ) {
+    }
 }
 
 impl Graph {
-    pub fn new<KeepEdge: Fn(&Tags) -> bool>(
+    pub fn new<KeepEdge: Fn(&Tags) -> bool, R: OsmReader>(
         input_bytes: &[u8],
         keep_edge: KeepEdge,
+        reader: &mut R,
     ) -> Result<Self> {
+        info!("Parsing {} bytes of OSM data", input_bytes.len());
+
         let mut node_mapping = HashMap::new();
         let mut highways = Vec::new();
         osm_reader::parse(input_bytes, |elem| match elem {
-            Element::Node { id, lon, lat, .. } => {
+            Element::Node {
+                id, lon, lat, tags, ..
+            } => {
                 let pt = Coord { x: lon, y: lat };
                 node_mapping.insert(id, pt);
+                reader.node(id, pt, tags.into());
             }
             Element::Way {
-                id, node_ids, tags, ..
+                id,
+                mut node_ids,
+                tags,
+                ..
             } => {
                 let tags: Tags = tags.into();
-                if keep_edge(&tags) {
+
+                // TODO This sometimes happens from Overpass?
+                let num = node_ids.len();
+                node_ids.retain(|n| node_mapping.contains_key(n));
+                if node_ids.len() != num {
+                    warn!("{id} refers to nodes outside the imported area");
+                }
+
+                reader.way(id, &node_ids, &node_mapping, &tags);
+
+                if node_ids.len() >= 2 && keep_edge(&tags) {
                     highways.push(Way { id, node_ids, tags });
                 }
             }
@@ -80,7 +114,8 @@ impl Graph {
         Ok(Self::from_scraped_osm(node_mapping, highways))
     }
 
-    pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
+    fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
+        info!("Splitting {} ways into edges", ways.len());
         let (mut edges, mut intersections) = split_edges(node_mapping, ways);
 
         // TODO expensive
