@@ -3,9 +3,13 @@ name = "utils"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+serde = ["dep:serde"]
+
 [dependencies]
 anyhow = "1.0.82"
 fast_paths = "1.0.0"
 geo = "0.28.0"
 log = "0.4.21"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }
+serde = { version = "1.0", features = ["derive"], optional = true }

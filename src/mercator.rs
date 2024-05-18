@@ -1,9 +1,12 @@
 use geo::{BoundingRect, Coord, HaversineLength, LineString, MapCoords, MapCoordsInPlace, Rect};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// Projects WGS84 points onto a Euclidean plane, using a Mercator projection. The top-left is (0,
 /// 0) and grows to the right and down (screen-drawing order, not Cartesian), with units of meters.
 /// The accuracy of this weakens for larger areas.
 // TODO Upstream or consider https://github.com/georust/geo/issues/1165
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct Mercator {
     pub wgs84_bounds: Rect,
     pub width: f64,

@@ -1,8 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 /// Convenience functions around a string->string map
 // BTreeMap for deterministic serialization (TODO but is that important?)
 // TODO Is there some other crate doing something better?
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(Clone, Debug, PartialEq)]
 pub struct Tags(pub BTreeMap<String, String>);
 
