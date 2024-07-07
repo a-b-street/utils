@@ -10,6 +10,7 @@ serde = ["dep:serde"]
 anyhow = "1.0.82"
 fast_paths = "1.0.0"
 geo = "0.28.0"
+geo-types = "0.7.13"
 log = "0.4.21"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }
 serde = { version = "1.0", features = ["derive"], optional = true }
