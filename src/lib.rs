@@ -1,3 +1,4 @@
+mod buffer_linestring;
 mod grid;
 mod line_split;
 mod mercator;
@@ -8,6 +9,7 @@ pub mod osm2graph;
 mod priority_queue;
 mod tags;
 
+pub use self::buffer_linestring::buffer_linestring;
 pub use self::grid::Grid;
 pub use self::line_split::{LineSplit, LineSplitResult, LineSplitTwiceResult};
 pub use self::mercator::Mercator;
