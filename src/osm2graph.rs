@@ -48,10 +48,10 @@ pub struct Intersection {
 }
 
 /// A scraped OSM way
-struct Way {
-    id: WayID,
-    node_ids: Vec<NodeID>,
-    tags: Tags,
+pub struct Way {
+    pub id: WayID,
+    pub node_ids: Vec<NodeID>,
+    pub tags: Tags,
 }
 
 /// Note this doesn't expose everything from osm_reader (relations, version) and transforms some
@@ -128,7 +128,7 @@ impl Graph {
         Ok(Self::from_scraped_osm(node_mapping, highways))
     }
 
-    fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
+    pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
         info!("Splitting {} ways into edges", ways.len());
         let (mut edges, mut intersections) = split_edges(node_mapping, ways);
 
