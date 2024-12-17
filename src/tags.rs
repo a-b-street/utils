@@ -39,6 +39,10 @@ impl Tags {
         }
     }
 
+    pub fn is_any_key(&self, keys: Vec<&'static str>, value: &str) -> bool {
+        keys.iter().any(|k| self.is(k, value))
+    }
+
     pub fn insert<K: Into<String>, V: Into<String>>(&mut self, k: K, v: V) {
         self.0.insert(k.into(), v.into());
     }
