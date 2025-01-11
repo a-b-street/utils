@@ -19,10 +19,9 @@ pub struct Graph {
     pub boundary_polygon: Polygon,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EdgeID(pub usize);
-//#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct IntersectionID(pub usize);
 
 pub struct Edge {
