@@ -21,7 +21,7 @@ pub struct Graph {
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct EdgeID(pub usize);
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct IntersectionID(pub usize);
 
 pub struct Edge {
