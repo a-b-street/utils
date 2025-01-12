@@ -183,6 +183,43 @@ impl Graph {
 
         self.intersections.retain(|_, i| !i.edges.is_empty());
     }
+
+    /// EdgeID and IntersectionID are normally opaque, but after calling this, the IDs will
+    /// represent indices into ordered lists.
+    pub fn compact_ids(&mut self) {
+        // First reassign IDs
+        let mut edge_mapping = HashMap::new();
+        let mut new_edges = BTreeMap::new();
+        for (_, mut edge) in std::mem::take(&mut self.edges) {
+            let old_id = edge.id;
+            let new_id = EdgeID(new_edges.len());
+            edge.id = new_id;
+            edge_mapping.insert(old_id, new_id);
+            new_edges.insert(new_id, edge);
+        }
+
+        let mut intersection_mapping = HashMap::new();
+        let mut new_intersections = BTreeMap::new();
+        for (_, mut intersection) in std::mem::take(&mut self.intersections) {
+            let old_id = intersection.id;
+            let new_id = IntersectionID(new_intersections.len());
+            intersection.id = new_id;
+            intersection_mapping.insert(old_id, new_id);
+            new_intersections.insert(new_id, intersection);
+        }
+
+        // Then fix up references to each other
+        for edge in new_edges.values_mut() {
+            edge.src = intersection_mapping[&edge.src];
+            edge.dst = intersection_mapping[&edge.dst];
+        }
+        for node in new_intersections.values_mut() {
+            node.edges = node.edges.iter().map(|e| edge_mapping[e]).collect();
+        }
+
+        self.edges = new_edges;
+        self.intersections = new_intersections;
+    }
 }
 
 fn split_edges(
