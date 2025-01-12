@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use anyhow::Result;
 use geo::{ConvexHull, Coord, Geometry, GeometryCollection, LineString, Point, Polygon};
@@ -10,15 +10,18 @@ use crate::{Mercator, Tags};
 /// Don't use this as a final structure, just an intermediate helper for splitting OSM ways into
 /// edges
 pub struct Graph {
-    pub edges: Vec<Edge>,
+    pub edges: BTreeMap<EdgeID, Edge>,
     /// Nodes in the graph sense, not OSM, though they happen to correspond to one OSM node
     // TODO Rename, but don't be confusing
-    pub intersections: Vec<Intersection>,
+    pub intersections: BTreeMap<IntersectionID, Intersection>,
     // All geometry is stored in world-space
     pub mercator: Mercator,
     pub boundary_polygon: Polygon,
+
+    id_counter: usize,
 }
 
+// These don't represent array indices / ordering
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct EdgeID(pub usize);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
@@ -129,24 +132,24 @@ impl Graph {
 
     pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
         info!("Splitting {} ways into edges", ways.len());
-        let (mut edges, mut intersections) = split_edges(node_mapping, ways);
+        let (mut edges, mut intersections, id_counter) = split_edges(node_mapping, ways);
 
         // TODO expensive
         let mut collection: GeometryCollection = edges
-            .iter()
+            .values()
             .map(|e| Geometry::LineString(e.linestring.clone()))
             .chain(
                 intersections
-                    .iter()
+                    .values()
                     .map(|i| Geometry::Point(i.point.clone())),
             )
             .collect::<Vec<_>>()
             .into();
         let mercator = Mercator::from(collection.clone()).unwrap();
-        for e in &mut edges {
+        for e in edges.values_mut() {
             mercator.to_mercator_in_place(&mut e.linestring);
         }
-        for i in &mut intersections {
+        for i in intersections.values_mut() {
             mercator.to_mercator_in_place(&mut i.point);
         }
 
@@ -158,14 +161,38 @@ impl Graph {
             intersections,
             mercator,
             boundary_polygon,
+            id_counter,
         }
+    }
+
+    /// This removes the specified edges. Any nodes without any surviving edges will also be removed.
+    pub fn remove_edges(&mut self, remove: BTreeSet<EdgeID>) {
+        for e in remove {
+            let edge = self.edges.remove(&e).unwrap();
+            self.intersections
+                .get_mut(&edge.src)
+                .unwrap()
+                .edges
+                .retain(|x| *x != e);
+            self.intersections
+                .get_mut(&edge.dst)
+                .unwrap()
+                .edges
+                .retain(|x| *x != e);
+        }
+
+        self.intersections.retain(|_, i| !i.edges.is_empty());
     }
 }
 
 fn split_edges(
     node_mapping: HashMap<NodeID, Coord>,
     ways: Vec<Way>,
-) -> (Vec<Edge>, Vec<Intersection>) {
+) -> (
+    BTreeMap<EdgeID, Edge>,
+    BTreeMap<IntersectionID, Intersection>,
+    usize,
+) {
     // Count how many ways reference each node
     let mut node_counter: HashMap<NodeID, usize> = HashMap::new();
     for way in &ways {
@@ -175,9 +202,10 @@ fn split_edges(
     }
 
     // Split each way into edges
+    let mut id_counter = 0;
     let mut node_to_intersection: HashMap<NodeID, IntersectionID> = HashMap::new();
-    let mut intersections = Vec::new();
-    let mut edges = Vec::new();
+    let mut intersections = BTreeMap::new();
+    let mut edges = BTreeMap::new();
     for way in ways {
         let mut node1 = way.node_ids[0];
         let mut pts = Vec::new();
@@ -190,38 +218,45 @@ fn split_edges(
             let is_endpoint =
                 idx == 0 || idx == num_nodes - 1 || *node_counter.get(&node).unwrap() > 1;
             if is_endpoint && pts.len() > 1 {
-                let edge_id = EdgeID(edges.len());
+                let edge_id = EdgeID(id_counter);
+                id_counter += 1;
 
                 let mut i_ids = Vec::new();
                 for (n, point) in [(node1, pts[0]), (node, *pts.last().unwrap())] {
-                    let intersection = if let Some(i) = node_to_intersection.get(&n) {
-                        &mut intersections[i.0]
-                    } else {
-                        let i = IntersectionID(intersections.len());
-                        intersections.push(Intersection {
-                            id: i,
-                            osm_node: n,
-                            point: Point(point),
-                            edges: Vec::new(),
-                        });
+                    let i = node_to_intersection.get(&n).cloned().unwrap_or_else(|| {
+                        let i = IntersectionID(id_counter);
+                        id_counter += 1;
+                        intersections.insert(
+                            i,
+                            Intersection {
+                                id: i,
+                                osm_node: n,
+                                point: Point(point),
+                                edges: Vec::new(),
+                            },
+                        );
                         node_to_intersection.insert(n, i);
-                        &mut intersections[i.0]
-                    };
+                        i
+                    });
+                    let intersection = intersections.get_mut(&i).unwrap();
 
                     intersection.edges.push(edge_id);
-                    i_ids.push(intersection.id);
+                    i_ids.push(i);
                 }
 
-                edges.push(Edge {
-                    id: edge_id,
-                    src: i_ids[0],
-                    dst: i_ids[1],
-                    osm_way: way.id,
-                    osm_node1: node1,
-                    osm_node2: node,
-                    osm_tags: way.tags.clone(),
-                    linestring: LineString::new(std::mem::take(&mut pts)),
-                });
+                edges.insert(
+                    edge_id,
+                    Edge {
+                        id: edge_id,
+                        src: i_ids[0],
+                        dst: i_ids[1],
+                        osm_way: way.id,
+                        osm_node1: node1,
+                        osm_node2: node,
+                        osm_tags: way.tags.clone(),
+                        linestring: LineString::new(std::mem::take(&mut pts)),
+                    },
+                );
 
                 // Start the next edge
                 node1 = node;
@@ -230,5 +265,5 @@ fn split_edges(
         }
     }
 
-    (edges, intersections)
+    (edges, intersections, id_counter)
 }
