@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use anyhow::Result;
 use geo::{ConvexHull, Coord, Geometry, GeometryCollection, LineString, Point, Polygon};
 use log::{info, warn};
-use osm_reader::{Element, NodeID, WayID};
+use osm_reader::{Element, NodeID, OsmID, RelationID, WayID};
 
 use crate::{Mercator, Tags};
 
@@ -34,9 +34,9 @@ pub struct Edge {
     pub src: IntersectionID,
     pub dst: IntersectionID,
 
-    pub osm_way: osm_reader::WayID,
-    pub osm_node1: osm_reader::NodeID,
-    pub osm_node2: osm_reader::NodeID,
+    pub osm_way: WayID,
+    pub osm_node1: NodeID,
+    pub osm_node2: NodeID,
     pub osm_tags: Tags,
 
     pub linestring: LineString,
@@ -46,7 +46,7 @@ pub struct Intersection {
     pub id: IntersectionID,
     pub edges: Vec<EdgeID>,
 
-    pub osm_node: osm_reader::NodeID,
+    pub osm_node: NodeID,
 
     pub point: Point,
 }
@@ -61,29 +61,24 @@ pub struct Way {
 /// Note this doesn't expose everything from osm_reader (relations, version) and transforms some
 /// data
 pub trait OsmReader {
-    fn node(&mut self, id: osm_reader::NodeID, pt: Coord, tags: Tags);
+    fn node(&mut self, id: NodeID, pt: Coord, tags: Tags);
     fn way(
         &mut self,
-        id: osm_reader::WayID,
-        node_ids: &Vec<osm_reader::NodeID>,
-        node_mapping: &HashMap<osm_reader::NodeID, Coord>,
+        id: WayID,
+        node_ids: &Vec<NodeID>,
+        node_mapping: &HashMap<NodeID, Coord>,
         tags: &Tags,
     );
+    fn relation(&mut self, id: RelationID, members: &Vec<(String, OsmID)>, tags: &Tags);
 }
 
 /// Ignores everything
 pub struct NullReader;
 
 impl OsmReader for NullReader {
-    fn node(&mut self, _: osm_reader::NodeID, _: Coord, _: Tags) {}
-    fn way(
-        &mut self,
-        _: osm_reader::WayID,
-        _: &Vec<osm_reader::NodeID>,
-        _: &HashMap<osm_reader::NodeID, Coord>,
-        _: &Tags,
-    ) {
-    }
+    fn node(&mut self, _: NodeID, _: Coord, _: Tags) {}
+    fn way(&mut self, _: WayID, _: &Vec<NodeID>, _: &HashMap<NodeID, Coord>, _: &Tags) {}
+    fn relation(&mut self, _: RelationID, _: &Vec<(String, OsmID)>, _: &Tags) {}
 }
 
 impl Graph {
@@ -125,7 +120,11 @@ impl Graph {
                     highways.push(Way { id, node_ids, tags });
                 }
             }
-            Element::Relation { .. } => {}
+            Element::Relation {
+                id, tags, members, ..
+            } => {
+                reader.relation(id, &members, &tags.into());
+            }
             Element::Bounds { .. } => {}
         })?;
 
