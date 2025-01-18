@@ -90,6 +90,7 @@ where
     /// ```ignore
     /// self.x*other.x + self.y*other.y
     /// ```
+    #[allow(unused)]
     fn dot_product(self, other: Rhs) -> Self::NumericType;
 
     /// The euclidean distance between this coordinate and the origin
@@ -115,6 +116,7 @@ where
     /// In a coordinate system where positive is up and to the right;
     /// Rotate this coordinate around the origin in the xy plane 90 degrees
     /// clockwise (Consistent with [geo::algorithm::rotate::Rotate]).
+    #[allow(unused)]
     fn right(self) -> Self;
 }
 

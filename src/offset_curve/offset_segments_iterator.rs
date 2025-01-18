@@ -104,8 +104,11 @@ where
     pub last: bool,
 
     // TODO: seems a,b,c are unused...
+    #[allow(unused)]
     pub a: Coord<T>,
+    #[allow(unused)]
     pub b: Coord<T>,
+    #[allow(unused)]
     pub c: Coord<T>,
 
     pub ab_offset: Option<LineMeasured<T>>,

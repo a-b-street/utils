@@ -1,7 +1,4 @@
-use geo::CoordFloat;
-use geo::EuclideanLength;
-use geo::Line;
-use geo::LineString;
+use geo::{CoordFloat, Euclidean, Length, LineString};
 
 /// The result of the [measure_line_string] function
 #[derive(PartialEq, Debug)]
@@ -24,7 +21,6 @@ pub fn measure_line_string<Scalar>(
 ) -> Option<LineStringMeasurements<Scalar>>
 where
     Scalar: CoordFloat,
-    Line<Scalar>: EuclideanLength<Scalar>,
 {
     if line_string.0.len() < 2 {
         return None;
@@ -39,7 +35,7 @@ where
              mut length_segments,
          },
          current| {
-            let segment_length = current.euclidean_length();
+            let segment_length = current.length::<Euclidean>();
             length_segments.push(segment_length);
             LineStringMeasurements {
                 length_total: length_total + segment_length,

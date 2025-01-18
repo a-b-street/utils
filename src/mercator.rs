@@ -1,4 +1,4 @@
-use geo::{BoundingRect, Coord, HaversineLength, LineString, MapCoords, MapCoordsInPlace, Rect};
+use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
 use geojson::{Feature, Geometry, Value};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -23,12 +23,12 @@ impl Mercator {
             (wgs84_bounds.min().x, wgs84_bounds.min().y),
             (wgs84_bounds.max().x, wgs84_bounds.min().y),
         ])
-        .haversine_length();
+        .length::<Haversine>();
         let height = LineString::from(vec![
             (wgs84_bounds.min().x, wgs84_bounds.min().y),
             (wgs84_bounds.min().x, wgs84_bounds.max().y),
         ])
-        .haversine_length();
+        .length::<Haversine>();
         Some(Self {
             wgs84_bounds,
             width,
