@@ -182,6 +182,8 @@ impl Graph {
         }
 
         self.intersections.retain(|_, i| !i.edges.is_empty());
+
+        self.node_to_edge.retain(|_, e| self.edges.contains_key(e));
     }
 
     /// EdgeID and IntersectionID are normally opaque, but after calling this, the IDs will
@@ -219,6 +221,11 @@ impl Graph {
 
         self.edges = new_edges;
         self.intersections = new_intersections;
+
+        // Also fix this
+        for (_, old_edge) in &mut self.node_to_edge {
+            *old_edge = edge_mapping[old_edge];
+        }
     }
 }
 
