@@ -14,11 +14,11 @@ pub struct Graph {
     /// Nodes in the graph sense, not OSM, though they happen to correspond to one OSM node
     // TODO Rename, but don't be confusing
     pub intersections: BTreeMap<IntersectionID, Intersection>,
+    /// Record every OSM node that winds up on each split edge
+    pub node_to_edge: HashMap<NodeID, EdgeID>,
     // All geometry is stored in world-space
     pub mercator: Mercator,
     pub boundary_polygon: Polygon,
-
-    id_counter: usize,
 }
 
 // These don't represent array indices / ordering
@@ -132,7 +132,7 @@ impl Graph {
 
     pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
         info!("Splitting {} ways into edges", ways.len());
-        let (mut edges, mut intersections, id_counter) = split_edges(node_mapping, ways);
+        let (mut edges, mut intersections, node_to_edge) = split_edges(node_mapping, ways);
 
         // TODO expensive
         let mut collection: GeometryCollection = edges
@@ -159,9 +159,9 @@ impl Graph {
         Self {
             edges,
             intersections,
+            node_to_edge,
             mercator,
             boundary_polygon,
-            id_counter,
         }
     }
 
@@ -228,7 +228,7 @@ fn split_edges(
 ) -> (
     BTreeMap<EdgeID, Edge>,
     BTreeMap<IntersectionID, Intersection>,
-    usize,
+    HashMap<NodeID, EdgeID>,
 ) {
     // Count how many ways reference each node
     let mut node_counter: HashMap<NodeID, usize> = HashMap::new();
@@ -238,6 +238,8 @@ fn split_edges(
         }
     }
 
+    let mut node_to_edge = HashMap::new();
+
     // Split each way into edges
     let mut id_counter = 0;
     let mut node_to_intersection: HashMap<NodeID, IntersectionID> = HashMap::new();
@@ -246,10 +248,12 @@ fn split_edges(
     for way in ways {
         let mut node1 = way.node_ids[0];
         let mut pts = Vec::new();
+        let mut nodes = Vec::new();
 
         let num_nodes = way.node_ids.len();
         for (idx, node) in way.node_ids.into_iter().enumerate() {
             pts.push(node_mapping[&node]);
+            nodes.push(node);
             // Edges start/end at intersections between two ways. The endpoints of the way also
             // count as intersections.
             let is_endpoint =
@@ -294,6 +298,9 @@ fn split_edges(
                         linestring: LineString::new(std::mem::take(&mut pts)),
                     },
                 );
+                for node in nodes.drain(..) {
+                    node_to_edge.insert(node, edge_id);
+                }
 
                 // Start the next edge
                 node1 = node;
@@ -302,5 +309,5 @@ fn split_edges(
         }
     }
 
-    (edges, intersections, id_counter)
+    (edges, intersections, node_to_edge)
 }
