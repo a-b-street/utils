@@ -16,6 +16,8 @@ pub struct Graph {
     pub intersections: BTreeMap<IntersectionID, Intersection>,
     /// Record every OSM node that winds up on each split edge
     pub node_to_edge: HashMap<NodeID, EdgeID>,
+    /// WG84 points
+    pub node_to_pt: HashMap<NodeID, Coord>,
     // All geometry is stored in world-space
     pub mercator: Mercator,
     pub boundary_polygon: Polygon,
@@ -132,7 +134,7 @@ impl Graph {
 
     pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
         info!("Splitting {} ways into edges", ways.len());
-        let (mut edges, mut intersections, node_to_edge) = split_edges(node_mapping, ways);
+        let (mut edges, mut intersections, node_to_edge) = split_edges(&node_mapping, ways);
 
         // TODO expensive
         let mut collection: GeometryCollection = edges
@@ -160,6 +162,7 @@ impl Graph {
             edges,
             intersections,
             node_to_edge,
+            node_to_pt: node_mapping,
             mercator,
             boundary_polygon,
         }
@@ -230,7 +233,7 @@ impl Graph {
 }
 
 fn split_edges(
-    node_mapping: HashMap<NodeID, Coord>,
+    node_mapping: &HashMap<NodeID, Coord>,
     ways: Vec<Way>,
 ) -> (
     BTreeMap<EdgeID, Edge>,
