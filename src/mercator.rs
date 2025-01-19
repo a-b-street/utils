@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 /// The accuracy of this weakens for larger areas.
 // TODO Upstream or consider https://github.com/georust/geo/issues/1165
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone)]
 pub struct Mercator {
     pub wgs84_bounds: Rect,
     pub width: f64,
