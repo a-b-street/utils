@@ -15,3 +15,6 @@ geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"]
 log = "0.4"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }
 serde = { version = "1.0", features = ["derive"], optional = true }
+
+[patch.crates-io]
+geo = { git = "https://github.com/georust/geo" } 
