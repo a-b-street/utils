@@ -7,7 +7,7 @@ use fast_paths::NodeId;
 use serde::{Deserialize, Deserializer, Serialize};
 
 /// A bidirectional mapping between fast_paths NodeId and some custom ID type.
-#[derive(Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct NodeMap<T: Copy + Ord + Debug + Serialize> {
     // These two fields are redundant and large, so don't serialize the bigger one, to cut down
     // file size.
