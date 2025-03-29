@@ -35,7 +35,7 @@ where
              mut length_segments,
          },
          current| {
-            let segment_length = current.length::<Euclidean>();
+            let segment_length = Euclidean.length(&current);
             length_segments.push(segment_length);
             LineStringMeasurements {
                 length_total: length_total + segment_length,

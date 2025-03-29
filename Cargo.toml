@@ -9,8 +9,8 @@ serde = ["dep:serde"]
 [dependencies]
 anyhow = "1.0"
 fast_paths = "1.0.0"
-geo = "0.29.1"
-geo-types = "0.7.13"
+geo = "0.30.0"
+geo-types = "0.7.16"
 geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
 log = "0.4"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }

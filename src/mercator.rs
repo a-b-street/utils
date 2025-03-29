@@ -20,16 +20,14 @@ impl Mercator {
     /// Create a boundary covering some geometry
     pub fn from<T: BoundingRect<f64>>(geometry: T) -> Option<Self> {
         let wgs84_bounds = geometry.bounding_rect().into()?;
-        let width = LineString::from(vec![
+        let width = Haversine.length(&LineString::from(vec![
             (wgs84_bounds.min().x, wgs84_bounds.min().y),
             (wgs84_bounds.max().x, wgs84_bounds.min().y),
-        ])
-        .length::<Haversine>();
-        let height = LineString::from(vec![
+        ]));
+        let height = Haversine.length(&LineString::from(vec![
             (wgs84_bounds.min().x, wgs84_bounds.min().y),
             (wgs84_bounds.min().x, wgs84_bounds.max().y),
-        ])
-        .length::<Haversine>();
+        ]));
         Some(Self {
             wgs84_bounds,
             width,
