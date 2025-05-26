@@ -9,6 +9,7 @@ use crate::{Mercator, Tags};
 
 /// Don't use this as a final structure, just an intermediate helper for splitting OSM ways into
 /// edges
+#[derive(Clone)]
 pub struct Graph {
     pub edges: BTreeMap<EdgeID, Edge>,
     /// Nodes in the graph sense, not OSM, though they happen to correspond to one OSM node
@@ -29,6 +30,7 @@ pub struct EdgeID(pub usize);
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub struct IntersectionID(pub usize);
 
+#[derive(Clone)]
 pub struct Edge {
     pub id: EdgeID,
     pub src: IntersectionID,
@@ -42,6 +44,7 @@ pub struct Edge {
     pub linestring: LineString,
 }
 
+#[derive(Clone)]
 pub struct Intersection {
     pub id: IntersectionID,
     pub edges: Vec<EdgeID>,
