@@ -16,6 +16,7 @@ pub struct Graph {
     // TODO Rename, but don't be confusing
     pub intersections: BTreeMap<IntersectionID, Intersection>,
     /// Record every OSM node that winds up on each split edge
+    /// TODO Maybe remove in favor of node_ids on Edge
     pub node_to_edge: HashMap<NodeID, EdgeID>,
     /// WG84 points
     pub node_to_pt: HashMap<NodeID, Coord>,
@@ -40,6 +41,8 @@ pub struct Edge {
     pub osm_node1: NodeID,
     pub osm_node2: NodeID,
     pub osm_tags: Tags,
+
+    pub node_ids: Vec<NodeID>,
 
     pub linestring: LineString,
 }
@@ -306,6 +309,7 @@ fn split_edges(
                         osm_way: way.id,
                         osm_node1: node1,
                         osm_node2: node,
+                        node_ids: nodes.clone(),
                         osm_tags: way.tags.clone(),
                         linestring: LineString::new(std::mem::take(&mut pts)),
                     },
