@@ -43,7 +43,6 @@ impl<K: Hash + Eq> HashedPoint<K> {
 /// Takes a network of linestrings. Finds every case of exactly two linestrings meeting at a point,
 /// and merges them together. Only linestrings with a matching key are considered. The linestrings
 /// can track an underlying road or edge ID, and the result will retain that detailed semantic path.
-// TODO Test with a loop consisting of two inputs
 pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
     input_lines: Vec<KeyedLineString<ID, K>>,
 ) -> Vec<KeyedLineString<ID, K>> {
@@ -77,6 +76,12 @@ pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
         let pair = point_to_line.remove(&pt).unwrap();
         let (idx1, idx2) = (pair[0], pair[1]);
 
+        // Check if the two lines form a loop, and if so, skip
+        if is_loop(&lines[&idx1], &lines[&idx2]) {
+            point_to_line.insert(pt, pair);
+            continue;
+        }
+
         let line1 = lines.remove(&idx1).unwrap();
         let line2 = lines.remove(&idx2).unwrap();
         let other_endpt1 = line1.other_endpt(pt);
@@ -101,6 +106,15 @@ pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
     }
 
     lines.into_values().collect()
+}
+
+fn is_loop<ID, K: Copy + Eq + Hash>(
+    line1: &KeyedLineString<ID, K>,
+    line2: &KeyedLineString<ID, K>,
+) -> bool {
+    let (pt1, pt2) = (line1.first_pt(), line1.last_pt());
+    let (pt3, pt4) = (line2.first_pt(), line2.last_pt());
+    (pt1 == pt3 || pt1 == pt4) && (pt2 == pt3 || pt2 == pt4)
 }
 
 fn join_lines<ID, K: Copy + Eq + Hash>(
@@ -156,5 +170,54 @@ fn replace(indices: &mut Vec<usize>, old: usize, new: usize) {
         if *x == old {
             *x = new;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use geo::line_string;
+
+    #[test]
+    fn test_easy() {
+        let input = vec![
+            KeyedLineString {
+                linestring: line_string![(x: 0., y: 0.), (x: 0., y: 5.)],
+                ids: vec![("r1", true)],
+                key: (),
+            },
+            KeyedLineString {
+                linestring: line_string![(x: 0., y: 5.), (x: 0., y: 10.)],
+                ids: vec![("r2", true)],
+                key: (),
+            },
+        ];
+        let output = collapse_degree_2(input);
+        assert_eq!(1, output.len());
+        // TODO Could require more traits
+        assert_eq!(
+            output[0].linestring,
+            line_string![(x: 0., y: 0.), (x: 0., y: 5.), (x: 0., y: 10.)]
+        );
+        assert_eq!(output[0].ids, vec![("r1", true), ("r2", true)]);
+    }
+
+    #[test]
+    fn test_loop() {
+        let input = vec![
+            KeyedLineString {
+                linestring: line_string![(x: 0., y: 0.), (x: 0., y: 5.)],
+                ids: vec![("r1", true)],
+                key: (),
+            },
+            KeyedLineString {
+                linestring: line_string![(x: 0., y: 5.), (x: 0., y: 0.)],
+                ids: vec![("r2", true)],
+                key: (),
+            },
+        ];
+        let output = collapse_degree_2(input);
+        // There should be no change
+        assert_eq!(2, output.len());
     }
 }
