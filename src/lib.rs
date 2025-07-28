@@ -1,4 +1,3 @@
-mod buffer_linestring;
 mod grid;
 mod join_lines;
 mod line_split;
@@ -10,7 +9,6 @@ pub mod osm2graph;
 mod priority_queue;
 mod tags;
 
-pub use self::buffer_linestring::buffer_linestring;
 pub use self::grid::Grid;
 pub use self::join_lines::{collapse_degree_2, KeyedLineString};
 pub use self::line_split::{LineSplit, LineSplitResult, LineSplitTwiceResult};

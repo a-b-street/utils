@@ -123,28 +123,28 @@ where
 
     /// Split a [Line](geo::Line) or [LineString](geo::LineString)
     /// at `fraction_start` and at `fraction_end`.
-    /// 
+    ///
     /// `fraction_start`/`fraction_end` are any real numbers. Only values between 0.0 and 1.0 will
     /// split the line. Values outside of this range (including infinite values) will be clamped to
     /// 0.0 or 1.0.
-    /// 
+    ///
     /// If `fraction_start > fraction_end`, then the values will be swapped prior splitting.
-    /// 
+    ///
     /// Returns [None] when
     /// - Either`fraction_start` or `fraction_end` are NAN
     /// - The the object being sliced includes NAN or infinite coordinates
     ///
     /// Otherwise Returns a [`Some(LineSplitTwiceResult<T>)`](LineSplitTwiceResult)
-    /// 
+    ///
     /// A [`LineSplitTwiceResult<T>`](LineSplitTwiceResult) can contain between one and three
     /// line parts where `T` is either [Line](geo::Line) or [LineString](geo::LineString).
-    /// 
+    ///
     /// Note that [LineSplitTwiceResult] provides various helper methods to get the desired part(s)
     /// of the output.
-    /// 
+    ///
     /// The following example shows how to always obtain the "middle" part between the two splits
     /// using the [`.into_second()`](LineSplitTwiceResult#method.into_second) method:
-    /// 
+    ///
     /// ```
     /// use geo::{LineString, line_string};
     /// use geo::algorithm::{LineSplit, EuclideanLength};
@@ -171,7 +171,7 @@ where
     ///     (x:10.0,y: 2.0),
     /// ]);
     /// ```
-    /// 
+    ///
     #[rustfmt::skip]
     fn line_split_twice(
         &self,
