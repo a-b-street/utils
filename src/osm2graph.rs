@@ -23,6 +23,8 @@ pub struct Graph {
     // All geometry is stored in world-space
     pub mercator: Mercator,
     pub boundary_polygon: Polygon,
+    /// Time since the epoch, representing how recent the OSM data is
+    pub timestamp: Option<i64>,
 }
 
 // These don't represent array indices / ordering
@@ -95,9 +97,14 @@ impl Graph {
     ) -> Result<Self> {
         info!("Parsing {} bytes of OSM data", input_bytes.len());
 
+        let mut timestamp = None;
         let mut node_mapping = HashMap::new();
         let mut highways = Vec::new();
         osm_reader::parse(input_bytes, |elem| match elem {
+            Element::Timestamp(ts) => {
+                timestamp = Some(ts);
+            }
+            Element::Bounds { .. } => {}
             Element::Node {
                 id, lon, lat, tags, ..
             } => {
@@ -131,13 +138,16 @@ impl Graph {
             } => {
                 reader.relation(id, &members, &tags.into());
             }
-            Element::Bounds { .. } => {}
         })?;
 
-        Ok(Self::from_scraped_osm(node_mapping, highways))
+        Ok(Self::from_scraped_osm(node_mapping, highways, timestamp))
     }
 
-    pub fn from_scraped_osm(node_mapping: HashMap<NodeID, Coord>, ways: Vec<Way>) -> Self {
+    pub fn from_scraped_osm(
+        node_mapping: HashMap<NodeID, Coord>,
+        ways: Vec<Way>,
+        timestamp: Option<i64>,
+    ) -> Self {
         info!("Splitting {} ways into edges", ways.len());
         let (mut edges, mut intersections, node_to_edge) = split_edges(&node_mapping, ways);
 
@@ -170,6 +180,7 @@ impl Graph {
             node_to_pt: node_mapping,
             mercator,
             boundary_polygon,
+            timestamp,
         }
     }
 
