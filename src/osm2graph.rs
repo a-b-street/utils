@@ -23,7 +23,7 @@ pub struct Graph {
     // All geometry is stored in world-space
     pub mercator: Mercator,
     pub boundary_polygon: Polygon,
-    /// Time since the epoch, representing how recent the OSM data is
+    /// Seconds since the epoch, representing how recent the OSM data is
     pub timestamp: Option<i64>,
 }
 
