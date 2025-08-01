@@ -7,6 +7,7 @@ mod node_map;
 mod offset_curve;
 pub mod osm2graph;
 mod priority_queue;
+mod step_along_line;
 mod tags;
 
 pub use self::grid::Grid;
@@ -17,4 +18,5 @@ pub use self::mercator::Mercator;
 pub use self::node_map::{deserialize_nodemap, NodeMap};
 pub use self::offset_curve::OffsetCurve;
 pub use self::priority_queue::PriorityQueueItem;
+pub use self::step_along_line::step_along_line;
 pub use self::tags::Tags;
