@@ -18,13 +18,10 @@ pub fn split_polygon<'a>(
     shapes
         .into_iter()
         .map(|rings| {
-            let mut linestrings: Vec<LineString> =
-                rings.into_iter().map(to_geo_linestring).collect();
-            if linestrings.is_empty() {
-                panic!("a split shape is empty");
-            }
-            let exterior = linestrings.remove(0);
-            Polygon::new(exterior, linestrings)
+            let exterior = rings.into_iter().next().expect("shapes must be non-empty");
+            let exterior_line_string = to_geo_linestring(exterior);
+            // We ignore any interiors
+            Polygon::new(exterior_line_string, vec![])
         })
         .collect()
 }
