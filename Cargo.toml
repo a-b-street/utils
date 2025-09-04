@@ -12,6 +12,7 @@ fast_paths = "1.0.0"
 geo = "0.31.0"
 geo-types = "0.7.16"
 geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
+i_overlay = { version = "4.0.0, < 4.1.0", default-features = false }
 log = "0.4"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }
 serde = { version = "1.0", features = ["derive"], optional = true }
