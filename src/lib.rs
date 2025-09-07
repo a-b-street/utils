@@ -22,3 +22,14 @@ pub use self::priority_queue::PriorityQueueItem;
 pub use self::split_polygon::split_polygon;
 pub use self::step_along_line::step_along_line;
 pub use self::tags::Tags;
+
+use geo::{BoundingRect, Point, Rect};
+use rstar::AABB;
+
+pub fn aabb<G: BoundingRect<f64, Output = Option<Rect<f64>>>>(geom: &G) -> AABB<Point> {
+    let bbox: Rect = geom.bounding_rect().unwrap().into();
+    AABB::from_corners(
+        Point::new(bbox.min().x, bbox.min().y),
+        Point::new(bbox.max().x, bbox.max().y),
+    )
+}
