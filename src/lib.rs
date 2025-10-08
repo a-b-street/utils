@@ -10,6 +10,8 @@ mod priority_queue;
 mod split_polygon;
 mod step_along_line;
 mod tags;
+#[cfg(target_arch = "wasm32")]
+mod wasm;
 
 pub use self::grid::Grid;
 pub use self::join_lines::{collapse_degree_2, KeyedLineString};
@@ -22,6 +24,8 @@ pub use self::priority_queue::PriorityQueueItem;
 pub use self::split_polygon::split_polygon;
 pub use self::step_along_line::step_along_line;
 pub use self::tags::Tags;
+#[cfg(target_arch = "wasm32")]
+pub use self::wasm::download_string;
 
 use geo::{BoundingRect, Point, Rect};
 use rstar::AABB;
