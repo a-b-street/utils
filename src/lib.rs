@@ -1,3 +1,4 @@
+mod debugger;
 mod grid;
 mod join_lines;
 mod line_split;
@@ -13,6 +14,7 @@ mod tags;
 #[cfg(target_arch = "wasm32")]
 mod wasm;
 
+pub use self::debugger::Debugger;
 pub use self::grid::Grid;
 pub use self::join_lines::{collapse_degree_2, KeyedLineString};
 pub use self::line_split::{LineSplit, LineSplitResult, LineSplitTwiceResult};
@@ -35,5 +37,19 @@ pub fn aabb<G: BoundingRect<f64, Output = Option<Rect<f64>>>>(geom: &G) -> AABB<
     AABB::from_corners(
         Point::new(bbox.min().x, bbox.min().y),
         Point::new(bbox.max().x, bbox.max().y),
+    )
+}
+
+/// Expand an AABB by some amount on all sides
+pub fn buffer_aabb(aabb: AABB<Point>, buffer_meters: f64) -> AABB<Point> {
+    AABB::from_corners(
+        Point::new(
+            aabb.lower().x() - buffer_meters,
+            aabb.lower().y() - buffer_meters,
+        ),
+        Point::new(
+            aabb.upper().x() + buffer_meters,
+            aabb.upper().y() + buffer_meters,
+        ),
     )
 }

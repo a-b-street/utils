@@ -33,7 +33,7 @@ where
     /// offsetting and intersecting them as we go.
     ///
     /// Returns an [OffsetSegmentsIterator]
-    fn iter_offset_segment_pairs(&self, distance: T) -> OffsetSegmentsIterator<T>;
+    fn iter_offset_segment_pairs(&self, distance: T) -> OffsetSegmentsIterator<'_, T>;
 }
 
 pub(super) struct OffsetSegmentsIterator<'a, T>
@@ -50,7 +50,7 @@ impl<T> LineStringOffsetSegmentPairs<T> for LineString<T>
 where
     T: CoordFloat,
 {
-    fn iter_offset_segment_pairs(&self, distance: T) -> OffsetSegmentsIterator<T>
+    fn iter_offset_segment_pairs(&self, distance: T) -> OffsetSegmentsIterator<'_, T>
     where
         T: CoordNum,
     {
