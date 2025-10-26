@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Debug;
 
-use fast_paths::NodeId;
+use fast_paths::{InputGraph, NodeId};
 use serde::{Deserialize, Deserializer, Serialize};
 
 /// A bidirectional mapping between fast_paths NodeId and some custom ID type.
