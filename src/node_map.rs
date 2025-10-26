@@ -41,6 +41,33 @@ impl<T: Copy + Ord + Debug + Serialize> NodeMap<T> {
     pub fn translate_id(&self, id: usize) -> T {
         self.id_to_node[id]
     }
+
+    /// Call this after filling out the input graph, right before preparation.
+    pub fn guarantee_node_ordering(&self, input_graph: &mut InputGraph) {
+        // The fast_paths implementation will trim out the last nodes in the input graph if there
+        // are no edges involving them:
+        // https://github.com/easbar/fast_paths/blob/fdb65f25c5485c9c74c1b3cbe66d829eea81b14b/src/input_graph.rs#L151
+        //
+        // We sometimes add nodes that aren't used yet, so that we can reuse the same node ordering
+        // later or use one PathCalculator between two almost-similar InputGraphs. Detect if the
+        // last node isn't used.
+        let last_node = self.id_to_node.len() - 1;
+        input_graph.freeze();
+        for edge in input_graph.get_edges() {
+            if edge.from == last_node || edge.to == last_node {
+                // The last node is used, so we're fine
+                input_graph.thaw();
+                return;
+            }
+        }
+        input_graph.thaw();
+
+        // Add a dummy edge from this unused node to any arbitrary node (namely the first), to
+        // prevent it from getting trimmed out. Since no path will start or end from this unused
+        // node, this won't affect resulting paths.
+        let first_node = 0;
+        input_graph.add_edge(last_node, first_node, 1);
+    }
 }
 
 // A serialized NodeMap has this form. Use this to deserialize.
