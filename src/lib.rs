@@ -53,3 +53,12 @@ pub fn buffer_aabb(aabb: AABB<Point>, buffer_meters: f64) -> AABB<Point> {
         ),
     )
 }
+
+/// Asserts a serde_json::Value is an Object, panicking otherwise
+#[cfg(feature = "serde")]
+pub fn into_object_value(value: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
+    match value {
+        serde_json::Value::Object(map) => map,
+        _ => panic!("into_object_value given something that isn't an object"),
+    }
+}

@@ -15,6 +15,16 @@ impl Tags {
         Self(BTreeMap::new())
     }
 
+    /// Create from `{key}={value}` strings
+    pub fn new_from_pairs(input: &Vec<&'static str>) -> Self {
+        let mut tags = Self::empty();
+        for kv in input {
+            let parts = kv.split("=").collect::<Vec<_>>();
+            tags.insert(parts[0], parts[1]);
+        }
+        tags
+    }
+
     pub fn get(&self, k: &str) -> Option<&String> {
         self.0.get(k)
     }
