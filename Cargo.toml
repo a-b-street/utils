@@ -9,7 +9,7 @@ serde = ["dep:serde", "dep:serde_json"]
 [dependencies]
 anyhow = "1.0"
 fast_paths = "1.0.0"
-geo = "0.31.0"
+geo = "0.32.0"
 geo-types = "0.7.16"
 geojson = { git = "https://github.com/georust/geojson", features = ["geo-types"] }
 i_overlay = { version = "4.0.0, < 4.1.0", default-features = false }
