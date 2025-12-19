@@ -16,7 +16,7 @@ mod wasm;
 
 pub use self::debugger::Debugger;
 pub use self::grid::Grid;
-pub use self::join_lines::{collapse_degree_2, KeyedLineString};
+pub use self::join_lines::{collapse_degree_2, collapse_loops, KeyedLineString};
 pub use self::line_split::{LineSplit, LineSplitResult, LineSplitTwiceResult};
 pub use self::mercator::Mercator;
 #[cfg(feature = "serde")]

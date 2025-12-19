@@ -42,7 +42,8 @@ impl<K: Hash + Eq> HashedPoint<K> {
 
 /// Takes a network of linestrings. Finds every case of exactly two linestrings meeting at a point,
 /// and merges them together. Only linestrings with a matching key are considered. The linestrings
-/// can track an underlying road or edge ID, and the result will retain that detailed semantic path.
+/// can track an underlying road or edge ID, and the result will retain that detailed semantic
+/// path. Two pieces of a loop are not collapsed.
 pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
     input_lines: Vec<KeyedLineString<ID, K>>,
 ) -> Vec<KeyedLineString<ID, K>> {
@@ -103,6 +104,53 @@ pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
         );
 
         id_counter += 1;
+    }
+
+    lines.into_values().collect()
+}
+
+/// Like collapse_degree_2, but only combines pairs of input that form a loop.
+pub fn collapse_loops<ID, K: Copy + Eq + Hash>(
+    input_lines: Vec<KeyedLineString<ID, K>>,
+) -> Vec<KeyedLineString<ID, K>> {
+    // Assign each input an ID that doesn't change
+    let mut lines: HashMap<usize, KeyedLineString<ID, K>> =
+        input_lines.into_iter().enumerate().collect();
+    let mut id_counter = lines.len();
+
+    // How many lines connect to each point?
+    let mut point_to_line: HashMap<HashedPoint<K>, Vec<usize>> = HashMap::new();
+    for (id, line) in &lines {
+        point_to_line
+            .entry(line.first_pt())
+            .or_insert_with(Vec::new)
+            .push(*id);
+        point_to_line
+            .entry(line.last_pt())
+            .or_insert_with(Vec::new)
+            .push(*id);
+    }
+
+    // Find all pairs of loops
+    let loop_pairs: Vec<(usize, usize)> = point_to_line
+        .iter()
+        .filter(|(_, list)| list.len() == 2 && is_loop(&lines[&list[0]], &lines[&list[1]]))
+        .map(|(_, list)| (list[0], list[1]))
+        .collect();
+
+    // Fix them
+    for (idx1, idx2) in loop_pairs {
+        // Each pair will show up twice and only be fixed the first time
+        if lines.contains_key(&idx1) && lines.contains_key(&idx2) {
+            let line1 = lines.remove(&idx1).unwrap();
+            let line2 = lines.remove(&idx2).unwrap();
+            let joined = join_lines(line1, line2);
+            lines.insert(id_counter, joined);
+            id_counter += 1;
+
+            // Unlike collapse_degree_2, don't fix up point_to_line or anything else. After merging
+            // a loop, no further work is ever necessary.
+        }
     }
 
     lines.into_values().collect()
@@ -204,20 +252,43 @@ mod tests {
 
     #[test]
     fn test_loop() {
-        let input = vec![
-            KeyedLineString {
-                linestring: line_string![(x: 0., y: 0.), (x: 0., y: 5.)],
-                ids: vec![("r1", true)],
-                key: (),
-            },
-            KeyedLineString {
-                linestring: line_string![(x: 0., y: 5.), (x: 0., y: 0.)],
-                ids: vec![("r2", true)],
-                key: (),
-            },
-        ];
-        let output = collapse_degree_2(input);
-        // There should be no change
-        assert_eq!(2, output.len());
+        let make_input = || {
+            vec![
+                KeyedLineString {
+                    linestring: line_string![(x: 0., y: 0.), (x: 0., y: 5.)],
+                    ids: vec![("r1", true)],
+                    key: (),
+                },
+                KeyedLineString {
+                    linestring: line_string![(x: 0., y: 5.), (x: 0., y: 0.)],
+                    ids: vec![("r2", true)],
+                    key: (),
+                },
+            ]
+        };
+
+        {
+            let output = collapse_degree_2(make_input());
+            // There should be no change
+            assert_eq!(2, output.len());
+        }
+
+        {
+            let output = collapse_loops(make_input());
+            assert_eq!(1, output.len());
+            // Depending on hash ordering, two outputs are possible
+            let case1 = output[0].linestring
+                == line_string![(x: 0., y: 0.), (x: 0., y: 5.), (x: 0., y: 0.)];
+            let case2 = output[0].linestring
+                == line_string![(x: 0., y: 5.), (x: 0., y: 0.), (x: 0., y: 5.)];
+
+            if case1 {
+                assert_eq!(output[0].ids, vec![("r1", true), ("r2", true)]);
+            } else if case2 {
+                assert_eq!(output[0].ids, vec![("r2", true), ("r1", true)]);
+            } else {
+                panic!("loop didn't merge: {:?}", output[0].linestring);
+            }
+        }
     }
 }
