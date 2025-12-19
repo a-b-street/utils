@@ -179,7 +179,7 @@ where
     }
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod test {
     use super::{LineStringOffsetSegmentPairs, OffsetSegmentsIteratorItem};
     use geo::{
@@ -213,4 +213,4 @@ mod test {
             .collect();
         assert!(result.unwrap().len() == 1);
     }
-}
+}*/

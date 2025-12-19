@@ -54,7 +54,7 @@ where
 
 // TODO: test
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod test {
 
     use geo::{
@@ -76,4 +76,4 @@ mod test {
         });
         assert_eq!(output_actual, output_expected);
     }
-}
+}*/

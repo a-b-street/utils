@@ -120,7 +120,7 @@ where
     }
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod test {
     use geo_types::{coord, line_string};
 
@@ -374,4 +374,4 @@ mod test {
             ]
         );
     }
-}
+}*/

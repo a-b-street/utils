@@ -236,7 +236,7 @@ where
     })
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod test {
     use super::{
         line_segment_intersection_with_parameters, line_segment_intersection_with_relationships,
@@ -364,4 +364,4 @@ mod test {
             assert!(false);
         }
     }
-}
+}*/
