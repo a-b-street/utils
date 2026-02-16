@@ -134,7 +134,9 @@ pub fn collapse_loops<ID, K: Copy + Eq + Hash>(
     // Find all pairs of loops
     let loop_pairs: Vec<(usize, usize)> = point_to_line
         .iter()
-        .filter(|(_, list)| list.len() == 2 && is_loop(&lines[&list[0]], &lines[&list[1]]))
+        .filter(|(_, list)| {
+            list.len() == 2 && list[0] != list[1] && is_loop(&lines[&list[0]], &lines[&list[1]])
+        })
         .map(|(_, list)| (list[0], list[1]))
         .collect();
 
@@ -290,5 +292,25 @@ mod tests {
                 panic!("loop didn't merge: {:?}", output[0].linestring);
             }
         }
+    }
+
+    #[test]
+    fn test_degenerate_loop() {
+        let output = collapse_loops(vec![
+            // A loop in one line
+            KeyedLineString {
+                linestring: line_string![(x: 0., y: 0.), (x: 0., y: 5.), (x: 0., y: 0.)],
+                ids: vec![("r1", true)],
+                key: (),
+            },
+            // Another segment, but not connected to that common point
+            KeyedLineString {
+                linestring: line_string![(x: 0., y: 5.), (x: 5., y: 5.)],
+                ids: vec![("r2", true)],
+                key: (),
+            },
+        ]);
+        // There should be no change
+        assert_eq!(2, output.len());
     }
 }
