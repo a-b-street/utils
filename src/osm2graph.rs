@@ -95,6 +95,17 @@ impl Graph {
         keep_edge: KeepEdge,
         reader: &mut R,
     ) -> Result<Self> {
+        let (node_mapping, highways, timestamp) = Self::scrape_osm(input_bytes, keep_edge, reader)?;
+        Ok(Self::from_scraped_osm(node_mapping, highways, timestamp))
+    }
+
+    /// Returns (node_mapping, ways, timestamp). Use this instead of `new` if you want to modify
+    /// the parsed OSM before turning into a graph.
+    pub fn scrape_osm<KeepEdge: Fn(&Tags) -> bool, R: OsmReader>(
+        input_bytes: &[u8],
+        keep_edge: KeepEdge,
+        reader: &mut R,
+    ) -> Result<(HashMap<NodeID, Coord>, Vec<Way>, Option<i64>)> {
         info!("Parsing {} bytes of OSM data", input_bytes.len());
 
         let mut timestamp = None;
@@ -140,7 +151,7 @@ impl Graph {
             }
         })?;
 
-        Ok(Self::from_scraped_osm(node_mapping, highways, timestamp))
+        Ok((node_mapping, highways, timestamp))
     }
 
     pub fn from_scraped_osm(
