@@ -2,22 +2,24 @@ use geo::{Coord, Euclidean, InterpolatableLine, Length, Line, LineString};
 
 // TODO Upstream to geo
 
-/// Walks along a linestring at regular intervals and output the point and angle of the line in
-/// degrees. Always includes the start and end point. This can't use
+/// Walks along a linestring at regular intervals and output (the point, the angle of the line in
+/// degrees, the fraction along the linestring). Always includes the start and end point. This can't use
 /// https://docs.rs/geo/latest/geo/algorithm/line_interpolate_point/trait.LineInterpolatePoint.html
 /// because the line / angle isn't returned.
-pub fn step_along_line(linestring: &LineString, interval: f64) -> Vec<(Coord, f64)> {
+pub fn step_along_line(linestring: &LineString, interval: f64) -> Vec<(Coord, f64, f64)> {
     // TODO This is very inefficient; it keeps searching from the start of the whole linestring
     let mut result = Vec::new();
     let mut dist_along = 0.0;
     let length = Euclidean.length(linestring);
     while dist_along < length {
-        result.push(dist_along_linestring(linestring, dist_along));
+        let (pt, angle) = dist_along_linestring(linestring, dist_along);
+        result.push((pt, angle, dist_along / length));
         dist_along += interval;
     }
     // TODO Or adjust interval... max interval
     if dist_along > length {
-        result.push(dist_along_linestring(linestring, length));
+        let (pt, angle) = dist_along_linestring(linestring, length);
+        result.push((pt, angle, 1.));
     }
     result
 }
