@@ -1,5 +1,5 @@
 use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
-use geojson::{Feature, Geometry, Value};
+use geojson::{Feature, Geometry, GeometryValue};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -64,9 +64,9 @@ impl Mercator {
 
     pub fn to_wgs84_gj<G: MapCoords<f64, f64, Output = G>>(&self, geom: &G) -> Feature
     where
-        Value: for<'a> From<&'a G>,
+        GeometryValue: for<'a> From<&'a G>,
     {
-        Feature::from(Geometry::from(Value::from(&self.to_wgs84(geom))))
+        Feature::from(Geometry::from(GeometryValue::from(&self.to_wgs84(geom))))
     }
 
     pub fn to_mercator_in_place<G: MapCoordsInPlace<f64>>(&self, geom: &mut G) {
