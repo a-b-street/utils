@@ -96,7 +96,12 @@ impl Graph {
         reader: &mut R,
     ) -> Result<Self> {
         let (node_mapping, highways, timestamp) = Self::scrape_osm(input_bytes, keep_edge, reader)?;
-        Ok(Self::from_scraped_osm(node_mapping, highways, timestamp))
+        Ok(Self::from_scraped_osm(
+            node_mapping,
+            highways,
+            timestamp,
+            BTreeSet::new(),
+        ))
     }
 
     /// Returns (node_mapping, ways, timestamp). Use this instead of `new` if you want to modify
@@ -154,13 +159,16 @@ impl Graph {
         Ok((node_mapping, highways, timestamp))
     }
 
+    /// force_intersections: Even if these nodes are degenerate, force them to be intersections in the graph
     pub fn from_scraped_osm(
         node_mapping: HashMap<NodeID, Coord>,
         ways: Vec<Way>,
         timestamp: Option<i64>,
+        force_intersections: BTreeSet<NodeID>,
     ) -> Self {
         info!("Splitting {} ways into edges", ways.len());
-        let (mut edges, mut intersections, node_to_edge) = split_edges(&node_mapping, ways);
+        let (mut edges, mut intersections, node_to_edge) =
+            split_edges(&node_mapping, ways, force_intersections);
 
         // TODO expensive
         let mut collection: GeometryCollection = edges
@@ -262,6 +270,7 @@ impl Graph {
 fn split_edges(
     node_mapping: &HashMap<NodeID, Coord>,
     ways: Vec<Way>,
+    force_intersections: BTreeSet<NodeID>,
 ) -> (
     BTreeMap<EdgeID, Edge>,
     BTreeMap<IntersectionID, Intersection>,
@@ -293,8 +302,10 @@ fn split_edges(
             nodes.push(node);
             // Edges start/end at intersections between two ways. The endpoints of the way also
             // count as intersections.
-            let is_endpoint =
-                idx == 0 || idx == num_nodes - 1 || *node_counter.get(&node).unwrap() > 1;
+            let is_endpoint = idx == 0
+                || idx == num_nodes - 1
+                || *node_counter.get(&node).unwrap() > 1
+                || force_intersections.contains(&node);
             if is_endpoint && pts.len() > 1 {
                 let edge_id = EdgeID(id_counter);
                 id_counter += 1;
