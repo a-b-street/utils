@@ -60,6 +60,7 @@ pub struct Intersection {
 }
 
 /// A scraped OSM way
+#[derive(Clone)]
 pub struct Way {
     pub id: WayID,
     pub node_ids: Vec<NodeID>,
