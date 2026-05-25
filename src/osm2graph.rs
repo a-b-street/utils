@@ -22,6 +22,9 @@ pub struct Graph {
     pub node_to_pt: HashMap<NodeID, Coord>,
     // All geometry is stored in world-space
     pub mercator: Mercator,
+    /// This is always actually the Mercator CRS. If proj_crs is specified, then `mercator` is
+    /// different.
+    pub mercator_fast: Mercator,
     pub boundary_polygon: Polygon,
     /// Seconds since the epoch, representing how recent the OSM data is
     pub timestamp: Option<i64>,
@@ -185,11 +188,13 @@ impl Graph {
             )
             .collect::<Vec<_>>()
             .into();
+        let mercator_fast = Mercator::from(collection.clone()).unwrap();
+
         let mercator = if let Some(crs) = proj_crs {
             // TODO Plumb the Result? But the old case also just panics
             Mercator::new_from_proj(crs).unwrap()
         } else {
-            Mercator::from(collection.clone()).unwrap()
+            mercator_fast.clone()
         };
         for e in edges.values_mut() {
             mercator.to_mercator_in_place(&mut e.linestring);
@@ -207,6 +212,7 @@ impl Graph {
             node_to_edge,
             node_to_pt: node_mapping,
             mercator,
+            mercator_fast,
             boundary_polygon,
             timestamp,
         }
