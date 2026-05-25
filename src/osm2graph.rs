@@ -97,11 +97,13 @@ impl Graph {
         reader: &mut R,
     ) -> Result<Self> {
         let (node_mapping, highways, timestamp) = Self::scrape_osm(input_bytes, keep_edge, reader)?;
+        let proj_crs = None;
         Ok(Self::from_scraped_osm(
             node_mapping,
             highways,
             timestamp,
             BTreeSet::new(),
+            proj_crs,
         ))
     }
 
@@ -166,6 +168,7 @@ impl Graph {
         ways: Vec<Way>,
         timestamp: Option<i64>,
         force_intersections: BTreeSet<NodeID>,
+        proj_crs: Option<&str>,
     ) -> Self {
         info!("Splitting {} ways into edges", ways.len());
         let (mut edges, mut intersections, node_to_edge) =
@@ -182,7 +185,12 @@ impl Graph {
             )
             .collect::<Vec<_>>()
             .into();
-        let mercator = Mercator::from(collection.clone()).unwrap();
+        let mercator = if let Some(crs) = proj_crs {
+            // TODO Plumb the Result? But the old case also just panics
+            Mercator::new_from_proj(crs).unwrap()
+        } else {
+            Mercator::from(collection.clone()).unwrap()
+        };
         for e in edges.values_mut() {
             mercator.to_mercator_in_place(&mut e.linestring);
         }
