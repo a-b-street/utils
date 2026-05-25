@@ -1,3 +1,6 @@
+#[cfg(not(target_arch = "wasm32"))]
+use std::sync::Arc;
+
 use anyhow::Result;
 use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
 use geojson::{Feature, Geometry, GeometryValue};
@@ -10,35 +13,19 @@ use serde::{Deserialize, Serialize};
 /// The accuracy of this weakens for larger areas.
 ///
 /// If `new_known_crs` then this is a total misnomer -- the Euclidean plane is determined by the
-/// CRS. Note then that `clone()` will panic.
+/// CRS. Note then that serializing and deserializing will revert to a dummy object that produces
+/// nonsense results. Use a CRS for large scales where Mercator is too lossy.
 // TODO Upstream or consider https://github.com/georust/geo/issues/1165
-#[derive(Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Mercator {
     pub wgs84_bounds: Rect,
     pub width: f64,
     pub height: f64,
 
     #[serde(skip_serializing, skip_deserializing)]
-    from_wgs84: Option<Proj>,
+    from_wgs84: Option<Arc<Proj>>,
     #[serde(skip_serializing, skip_deserializing)]
-    to_wgs84: Option<Proj>,
-}
-
-impl std::clone::Clone for Mercator {
-    fn clone(&self) -> Self {
-        // TODO Major potential gotcha
-        // ... We could make it work by remembering the CRS and reconstructing it here
-        if self.from_wgs84.is_some() {
-            panic!("Can't clone Mercator built from proj");
-        }
-        Self {
-            wgs84_bounds: self.wgs84_bounds.clone(),
-            width: self.width,
-            height: self.height,
-            from_wgs84: None,
-            to_wgs84: None,
-        }
-    }
+    to_wgs84: Option<Arc<Proj>>,
 }
 
 impl Mercator {
@@ -66,8 +53,8 @@ impl Mercator {
 
     pub fn new_from_proj(crs: &str) -> Result<Self> {
         let wgs84 = "EPSG:4326";
-        let from_wgs84 = Some(Proj::new_known_crs(wgs84, crs, None)?);
-        let to_wgs84 = Some(Proj::new_known_crs(crs, wgs84, None)?);
+        let from_wgs84 = Some(Arc::new(Proj::new_known_crs(wgs84, crs, None)?));
+        let to_wgs84 = Some(Arc::new(Proj::new_known_crs(crs, wgs84, None)?));
         Ok(Self {
             wgs84_bounds: Rect::new(Coord { x: 0., y: 0. }, Coord { x: 0., y: 0. }),
             width: 0.,
