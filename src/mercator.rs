@@ -1,16 +1,43 @@
+use anyhow::Result;
 use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
 use geojson::{Feature, Geometry, GeometryValue};
+use proj::Proj;
 use serde::{Deserialize, Serialize};
 
 /// Projects WGS84 points onto a Euclidean plane, using a Mercator projection. The top-left is (0,
 /// 0) and grows to the right and down (screen-drawing order, not Cartesian), with units of meters.
 /// The accuracy of this weakens for larger areas.
+///
+/// If `new_known_crs` then this is a total misnomer -- the Euclidean plane is determined by the
+/// CRS. Note then that `clone()` will panic.
 // TODO Upstream or consider https://github.com/georust/geo/issues/1165
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct Mercator {
     pub wgs84_bounds: Rect,
     pub width: f64,
     pub height: f64,
+
+    #[serde(skip_serializing, skip_deserializing)]
+    from_wgs84: Option<Proj>,
+    #[serde(skip_serializing, skip_deserializing)]
+    to_wgs84: Option<Proj>,
+}
+
+impl std::clone::Clone for Mercator {
+    fn clone(&self) -> Self {
+        // TODO Major potential gotcha
+        // ... We could make it work by remembering the CRS and reconstructing it here
+        if self.from_wgs84.is_some() {
+            panic!("Can't clone Mercator built from proj");
+        }
+        Self {
+            wgs84_bounds: self.wgs84_bounds.clone(),
+            width: self.width,
+            height: self.height,
+            from_wgs84: None,
+            to_wgs84: None,
+        }
+    }
 }
 
 impl Mercator {
@@ -30,10 +57,31 @@ impl Mercator {
             wgs84_bounds,
             width,
             height,
+
+            from_wgs84: None,
+            to_wgs84: None,
+        })
+    }
+
+    pub fn new_from_proj(crs: &str) -> Result<Self> {
+        let wgs84 = "EPSG:4326";
+        let from_wgs84 = Some(Proj::new_known_crs(wgs84, crs, None)?);
+        let to_wgs84 = Some(Proj::new_known_crs(crs, wgs84, None)?);
+        Ok(Self {
+            wgs84_bounds: Rect::new(Coord { x: 0., y: 0. }, Coord { x: 0., y: 0. }),
+            width: 0.,
+            height: 0.,
+
+            from_wgs84,
+            to_wgs84,
         })
     }
 
     pub fn pt_to_mercator(&self, pt: Coord) -> Coord {
+        if let Some(crs) = &self.from_wgs84 {
+            return crs.convert(pt).unwrap();
+        }
+
         let x = self.width * (pt.x - self.wgs84_bounds.min().x) / self.wgs84_bounds.width();
         // Invert y, so that the northernmost latitude is 0
         let y = self.height
@@ -42,6 +90,14 @@ impl Mercator {
     }
 
     pub fn pt_to_wgs84(&self, pt: Coord) -> Coord {
+        if let Some(crs) = &self.to_wgs84 {
+            let out = crs.convert(pt).unwrap();
+            return Coord {
+                x: trim_lon_lat(out.x),
+                y: trim_lon_lat(out.y),
+            };
+        }
+
         let x = trim_lon_lat(
             self.wgs84_bounds.min().x + (pt.x / self.width * self.wgs84_bounds.width()),
         );
