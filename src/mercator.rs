@@ -61,7 +61,7 @@ impl Mercator {
         if let Some((wgs84, custom)) = &self.proj {
             let mut pt = (pt.x.to_radians(), pt.y.to_radians());
             proj4rs::transform::transform(wgs84, custom, &mut pt).unwrap();
-            return Coord { x: pt.0, y: pt.0 };
+            return Coord { x: pt.0, y: pt.1 };
         }
 
         let x = self.width * (pt.x - self.wgs84_bounds.min().x) / self.wgs84_bounds.width();
@@ -77,7 +77,7 @@ impl Mercator {
             proj4rs::transform::transform(custom, wgs84, &mut pt).unwrap();
             return Coord {
                 x: trim_lon_lat(pt.0.to_degrees()),
-                y: trim_lon_lat(pt.0.to_degrees()),
+                y: trim_lon_lat(pt.1.to_degrees()),
             };
         }
 
