@@ -1,5 +1,5 @@
 #[cfg(not(target_arch = "wasm32"))]
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
@@ -23,9 +23,9 @@ pub struct Mercator {
     pub height: f64,
 
     #[serde(skip_serializing, skip_deserializing)]
-    from_wgs84: Option<Arc<Proj>>,
+    from_wgs84: Option<Arc<Mutex<Proj>>>,
     #[serde(skip_serializing, skip_deserializing)]
-    to_wgs84: Option<Arc<Proj>>,
+    to_wgs84: Option<Arc<Mutex<Proj>>>,
 }
 
 impl Mercator {
@@ -53,8 +53,8 @@ impl Mercator {
 
     pub fn new_from_proj(crs: &str) -> Result<Self> {
         let wgs84 = "EPSG:4326";
-        let from_wgs84 = Some(Arc::new(Proj::new_known_crs(wgs84, crs, None)?));
-        let to_wgs84 = Some(Arc::new(Proj::new_known_crs(crs, wgs84, None)?));
+        let from_wgs84 = Some(Arc::new(Mutex::new(Proj::new_known_crs(wgs84, crs, None)?)));
+        let to_wgs84 = Some(Arc::new(Mutex::new(Proj::new_known_crs(crs, wgs84, None)?)));
         Ok(Self {
             wgs84_bounds: Rect::new(Coord { x: 0., y: 0. }, Coord { x: 0., y: 0. }),
             width: 0.,
@@ -67,7 +67,7 @@ impl Mercator {
 
     pub fn pt_to_mercator(&self, pt: Coord) -> Coord {
         if let Some(crs) = &self.from_wgs84 {
-            return crs.convert(pt).unwrap();
+            return crs.lock().unwrap().convert(pt).unwrap();
         }
 
         let x = self.width * (pt.x - self.wgs84_bounds.min().x) / self.wgs84_bounds.width();
@@ -79,7 +79,7 @@ impl Mercator {
 
     pub fn pt_to_wgs84(&self, pt: Coord) -> Coord {
         if let Some(crs) = &self.to_wgs84 {
-            let out = crs.convert(pt).unwrap();
+            let out = crs.lock().unwrap().convert(pt).unwrap();
             return Coord {
                 x: trim_lon_lat(out.x),
                 y: trim_lon_lat(out.y),
