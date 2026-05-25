@@ -3,7 +3,6 @@ mod grid;
 mod join_lines;
 mod line_split;
 mod mercator;
-#[cfg(feature = "serde")]
 mod node_map;
 mod offset_curve;
 pub mod osm2graph;
@@ -19,7 +18,6 @@ pub use self::grid::Grid;
 pub use self::join_lines::{collapse_degree_2, collapse_loops, KeyedLineString};
 pub use self::line_split::{LineSplit, LineSplitResult, LineSplitTwiceResult};
 pub use self::mercator::Mercator;
-#[cfg(feature = "serde")]
 pub use self::node_map::{deserialize_nodemap, NodeMap};
 pub use self::offset_curve::OffsetCurve;
 pub use self::priority_queue::PriorityQueueItem;
@@ -55,7 +53,6 @@ pub fn buffer_aabb(aabb: AABB<Point>, buffer_meters: f64) -> AABB<Point> {
 }
 
 /// Asserts a serde_json::Value is an Object, panicking otherwise
-#[cfg(feature = "serde")]
 pub fn into_object_value(value: serde_json::Value) -> serde_json::Map<String, serde_json::Value> {
     match value {
         serde_json::Value::Object(map) => map,
