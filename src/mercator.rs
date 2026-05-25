@@ -1,6 +1,7 @@
 use anyhow::Result;
 use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
 use geojson::{Feature, Geometry, GeometryValue};
+#[cfg(not(target_arch = "wasm32"))]
 use proj::Proj;
 use serde::{Deserialize, Serialize};
 
@@ -136,4 +137,19 @@ impl Mercator {
 // plenty of precision
 fn trim_lon_lat(x: f64) -> f64 {
     (x * 10e6).round() / 10e6
+}
+
+// Stub out Proj on wasm32
+#[cfg(target_arch = "wasm32")]
+struct Proj;
+
+#[cfg(target_arch = "wasm32")]
+impl Proj {
+    fn new_known_crs(_from: &str, _to: &str, _area: Option<()>) -> Result<Self> {
+        panic!("not supported on wasm32");
+    }
+
+    fn convert(&self, _pt: Coord) -> Result<Coord> {
+        panic!("not supported on wasm32");
+    }
 }
