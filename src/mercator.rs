@@ -1,5 +1,7 @@
 #[cfg(not(target_arch = "wasm32"))]
-use std::sync::{Arc, Mutex};
+use std::cell::RefCell;
+#[cfg(not(target_arch = "wasm32"))]
+use std::collections::HashMap;
 
 use anyhow::Result;
 use geo::{BoundingRect, Coord, Haversine, Length, LineString, MapCoords, MapCoordsInPlace, Rect};
@@ -8,24 +10,32 @@ use geojson::{Feature, Geometry, GeometryValue};
 use proj::Proj;
 use serde::{Deserialize, Serialize};
 
+const WGS84: &'static str = "EPSG:4326";
+
 /// Projects WGS84 points onto a Euclidean plane, using a Mercator projection. The top-left is (0,
 /// 0) and grows to the right and down (screen-drawing order, not Cartesian), with units of meters.
 /// The accuracy of this weakens for larger areas.
 ///
 /// If `new_known_crs` then this is a total misnomer -- the Euclidean plane is determined by the
-/// CRS. Note then that serializing and deserializing will revert to a dummy object that produces
-/// nonsense results. Use a CRS for large scales where Mercator is too lossy.
+/// CRS. Use for large scales where Mercator is too lossy.
 // TODO Upstream or consider https://github.com/georust/geo/issues/1165
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Mercator {
+    // TODO All of these option actually
     pub wgs84_bounds: Rect,
     pub width: f64,
     pub height: f64,
 
-    #[serde(skip_serializing, skip_deserializing)]
-    from_wgs84: Option<Arc<Mutex<Proj>>>,
-    #[serde(skip_serializing, skip_deserializing)]
-    to_wgs84: Option<Arc<Mutex<Proj>>>,
+    crs: Option<String>,
+}
+
+thread_local! {
+    static PROJ_CACHE: RefCell<HashMap<String, ProjPair>> = RefCell::new(HashMap::new());
+}
+
+struct ProjPair {
+    to_crs: Proj,
+    to_wgs84: Proj,
 }
 
 impl Mercator {
@@ -46,28 +56,37 @@ impl Mercator {
             width,
             height,
 
-            from_wgs84: None,
-            to_wgs84: None,
+            crs: None,
         })
     }
 
     pub fn new_from_proj(crs: &str) -> Result<Self> {
-        let wgs84 = "EPSG:4326";
-        let from_wgs84 = Some(Arc::new(Mutex::new(Proj::new_known_crs(wgs84, crs, None)?)));
-        let to_wgs84 = Some(Arc::new(Mutex::new(Proj::new_known_crs(crs, wgs84, None)?)));
+        // Validate upfront
+        let _ = Proj::new_known_crs(WGS84, crs, None)?;
+        let _ = Proj::new_known_crs(crs, WGS84, None)?;
         Ok(Self {
             wgs84_bounds: Rect::new(Coord { x: 0., y: 0. }, Coord { x: 0., y: 0. }),
             width: 0.,
             height: 0.,
 
-            from_wgs84,
-            to_wgs84,
+            crs: Some(crs.to_string()),
         })
     }
 
     pub fn pt_to_mercator(&self, pt: Coord) -> Coord {
-        if let Some(crs) = &self.from_wgs84 {
-            return crs.lock().unwrap().convert(pt).unwrap();
+        if let Some(crs) = &self.crs {
+            return PROJ_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                let pair = cache.entry(crs.clone()).or_insert_with(|| {
+                    let to_crs = Proj::new_known_crs(WGS84, &crs, None).unwrap();
+
+                    let to_wgs84 = Proj::new_known_crs(&crs, WGS84, None).unwrap();
+
+                    ProjPair { to_crs, to_wgs84 }
+                });
+
+                pair.to_crs.convert(pt).unwrap()
+            });
         }
 
         let x = self.width * (pt.x - self.wgs84_bounds.min().x) / self.wgs84_bounds.width();
@@ -78,12 +97,23 @@ impl Mercator {
     }
 
     pub fn pt_to_wgs84(&self, pt: Coord) -> Coord {
-        if let Some(crs) = &self.to_wgs84 {
-            let out = crs.lock().unwrap().convert(pt).unwrap();
-            return Coord {
-                x: trim_lon_lat(out.x),
-                y: trim_lon_lat(out.y),
-            };
+        if let Some(crs) = &self.crs {
+            return PROJ_CACHE.with(|cache| {
+                let mut cache = cache.borrow_mut();
+                let pair = cache.entry(crs.clone()).or_insert_with(|| {
+                    let to_crs = Proj::new_known_crs(WGS84, &crs, None).unwrap();
+
+                    let to_wgs84 = Proj::new_known_crs(&crs, WGS84, None).unwrap();
+
+                    ProjPair { to_crs, to_wgs84 }
+                });
+
+                let out = pair.to_wgs84.convert(pt).unwrap();
+                Coord {
+                    x: trim_lon_lat(out.x),
+                    y: trim_lon_lat(out.y),
+                }
+            });
         }
 
         let x = trim_lon_lat(
