@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0"
 fast_paths = "1.0.0"
-geo = "0.32.0"
-geo-types = "0.7.16"
+geo = "0.33.1"
+geo-types = "0.7.19"
 geojson = { version = "1.0.0", features = ["geo-types"] }
-i_overlay = { version = "4.0.0, < 4.1.0", default-features = false }
+i_overlay = { version = "4.5.1, < 4.6.0", default-features = false }
 log = "0.4"
 osm-reader = { git = "https://github.com/a-b-street/osm-reader" }
 rstar = "0.12.2"
