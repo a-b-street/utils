@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::hash::Hash;
 
 use geo::{Coord, LineString};
@@ -44,16 +44,16 @@ impl<K: Hash + Eq> HashedPoint<K> {
 /// and merges them together. Only linestrings with a matching key are considered. The linestrings
 /// can track an underlying road or edge ID, and the result will retain that detailed semantic
 /// path. Two pieces of a loop are not collapsed.
-pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
+pub fn collapse_degree_2<ID, K: Copy + Eq + Hash + Ord>(
     input_lines: Vec<KeyedLineString<ID, K>>,
 ) -> Vec<KeyedLineString<ID, K>> {
     // Assign each input an ID that doesn't change
-    let mut lines: HashMap<usize, KeyedLineString<ID, K>> =
+    let mut lines: BTreeMap<usize, KeyedLineString<ID, K>> =
         input_lines.into_iter().enumerate().collect();
     let mut id_counter = lines.len();
 
     // How many lines connect to each point?
-    let mut point_to_line: HashMap<HashedPoint<K>, Vec<usize>> = HashMap::new();
+    let mut point_to_line: BTreeMap<HashedPoint<K>, Vec<usize>> = BTreeMap::new();
     for (id, line) in &lines {
         point_to_line
             .entry(line.first_pt())
@@ -110,16 +110,16 @@ pub fn collapse_degree_2<ID, K: Copy + Eq + Hash>(
 }
 
 /// Like collapse_degree_2, but only combines pairs of input that form a loop.
-pub fn collapse_loops<ID, K: Copy + Eq + Hash>(
+pub fn collapse_loops<ID, K: Copy + Eq + Hash + Ord>(
     input_lines: Vec<KeyedLineString<ID, K>>,
 ) -> Vec<KeyedLineString<ID, K>> {
     // Assign each input an ID that doesn't change
-    let mut lines: HashMap<usize, KeyedLineString<ID, K>> =
+    let mut lines: BTreeMap<usize, KeyedLineString<ID, K>> =
         input_lines.into_iter().enumerate().collect();
     let mut id_counter = lines.len();
 
     // How many lines connect to each point?
-    let mut point_to_line: HashMap<HashedPoint<K>, Vec<usize>> = HashMap::new();
+    let mut point_to_line: BTreeMap<HashedPoint<K>, Vec<usize>> = BTreeMap::new();
     for (id, line) in &lines {
         point_to_line
             .entry(line.first_pt())
@@ -278,7 +278,7 @@ mod tests {
         {
             let output = collapse_loops(make_input());
             assert_eq!(1, output.len());
-            // Depending on hash ordering, two outputs are possible
+            // Depending on BTree ordering, two outputs are possible
             let case1 = output[0].linestring
                 == line_string![(x: 0., y: 0.), (x: 0., y: 5.), (x: 0., y: 0.)];
             let case2 = output[0].linestring
